@@ -13,13 +13,20 @@ def get_allowed_apps():
     r = requests.get("https://multidata.dev.myunified.ca/service-providers.json", auth=("metadata.client", ""), headers=headers)
 
     allowed_apps = []
-    my_entity = flask.request.environ.get("Shib-Identity-Provider")
+    my_entity = flask.request.environ.get("Shib-Authenticating-Authority")
 
     for e in r.json():
         if e.get("name:en") is None:
             continue
         if e["name:en"].startswith("myUnifiED"):
             continue
+
+        login_url = "https://engine.dev.myunified.ca/authentication/idp/unsolicited-single-sign-on?sp-entity-id={}{}"
+        app_url = e.get("coin:application_url")
+        if app_url is None or app_url == "":
+            e["loginUrl"] = login_url.format(e["entityid"], "")
+        else:
+            e["loginUrl"] = login_url.format(e["entityid"], "&RelayState="+app_url)
 
         if e["allowedall"] == "yes":
             allowed_apps.append(e)

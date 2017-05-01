@@ -24,7 +24,7 @@
 
   <body>
 
-    <nav class="navbar navbar-inverse navbar-fixed-top">
+    <nav class="navbar navbar-inverse navbar-static-top">
       <div class="container">
         <div class="navbar-header">
           <div class="navbar-brand">myUnifiED Apps</div>
@@ -34,12 +34,13 @@
 
     <div class="container">
 
-      <div class="starter-template">
-        <h1>Bootstrap starter template</h1>
-        <p class="lead">Use this document as a way to quickly start any new project.<br> All you get is this text and a mostly barebones HTML document.</p>
+      <div class="row">
+        <h1>Apps</h1>
+        <ul>
         {% for a in apps %}
-          <a href='{{ a["coin:application_url"] }}'>{{ a["name:en"] }}</a>
+          <li><a href='{{ a["loginUrl"] }}'>{{ a["name:en"] }}</a></li>
         {% endfor %}
+        </ul>
       </div>
 
     </div><!-- /.container -->
