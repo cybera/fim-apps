@@ -12,6 +12,10 @@ def get_allowed_apps():
     headers = { "Content-Type": "application/json" }
     r = requests.get("https://multidata.dev.myunified.ca/service-providers.json", auth=("metadata.client", ""), headers=headers)
 
+    # TODO: Create error page
+    if r.status_code != 200:
+        return []
+
     allowed_apps = []
     my_entity = flask.request.environ.get("Shib-Authenticating-Authority")
 
