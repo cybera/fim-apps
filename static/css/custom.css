@@ -6,3 +6,7 @@
 .navbar-inverse .navbar-brand {
   color: #fff;
 }
+
+.bg-danger {
+  padding: 15px;
+}

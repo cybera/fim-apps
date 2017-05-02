@@ -5,16 +5,20 @@ app = flask.Flask(__name__)
 
 @app.route("/")
 def app_list():
-    apps = get_allowed_apps()
-    return flask.render_template("apps.html", apps=apps)
+    error = False
+    try:
+        apps = get_allowed_apps()
+    except AppsException:
+        apps = []
+        error = True
+    return flask.render_template("apps.html", apps=apps, error=error)
 
 def get_allowed_apps():
     headers = { "Content-Type": "application/json" }
     r = requests.get("https://multidata.dev.myunified.ca/service-providers.json", auth=("metadata.client", ""), headers=headers)
 
-    # TODO: Create error page
     if r.status_code != 200:
-        return []
+        raise AppsException("Got non-200 status code")
 
     allowed_apps = []
     my_entity = flask.request.environ.get("Shib-Authenticating-Authority")
@@ -39,6 +43,9 @@ def get_allowed_apps():
                 allowed_apps.append(e)
 
     return allowed_apps
+
+class AppsException(Exception):
+    pass
 
 if __name__ == "__main__":
     app.run()

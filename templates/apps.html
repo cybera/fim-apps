@@ -35,14 +35,21 @@
 
     <div class="container">
 
+      {% if error %}
+        <div class="row">
+          <p class="bg-danger"><strong>Error:</strong> Could not retrieve apps, please try again later.</p>
+        </div>
+      {% endif %}
+
       <div class="row">
         <h1>Apps</h1>
         <table class="table table-bordered table-striped">
           <tbody>
           {% for a in apps %}
             <tr>
-              <td><img src='{{ a["logo:0:url"] }}' class="img-responsive"></td>
-              <td><a href='{{ a["loginUrl"] }}'>{{ a["name:en"] }}</a></td>
+              <td><img src="{{ a["logo:0:url"] }}" class="img-responsive" height="{{ a["logo:0:height"] }}" width="{{ a["logo:0:width"] }}"></td>
+              <td class="lead">{{ a["name:en"] }}</td>
+              <td><a href="{{ a["loginUrl"] }}" class="btn btn-primary">Login</a></td<
             </tr>
           {% endfor %}
           </tbody>
