@@ -7,6 +7,10 @@
   color: #fff;
 }
 
+.table tbody>tr>td.vert-align{
+    vertical-align: middle;
+}
+
 .bg-danger {
   padding: 15px;
 }

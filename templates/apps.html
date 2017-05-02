@@ -48,8 +48,8 @@
           {% for a in apps %}
             <tr>
               <td><img src="{{ a["logo:0:url"] }}" class="img-responsive" height="{{ a["logo:0:height"] }}" width="{{ a["logo:0:width"] }}"></td>
-              <td class="lead">{{ a["name:en"] }}</td>
-              <td><a href="{{ a["loginUrl"] }}" class="btn btn-primary">Login</a></td<
+              <td class="lead vert-align">{{ a["name:en"] }}</td>
+              <td class="vert-align"><a href="{{ a["loginUrl"] }}" class="btn btn-primary">Login</a></td<
             </tr>
           {% endfor %}
           </tbody>
