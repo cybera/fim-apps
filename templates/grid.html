@@ -3,9 +3,9 @@
 <div class="row">
   {% for a in apps %}
     <div class="col-lg-3 col-sm-4 col-xs-6" style="text-align:center">
-      <a href="{{ a["loginUrl"] }}" class="lead">
-        <img src="{{ a["logo:0:url"] }}" class="img-responsive">
-        {{ a["name:en"] }}
+      <a href="{{ a["loginUrl"] }}">
+        <img src="{{ a["logo:0:url"] }}" class="img-responsive" height="200px" style="margin:auto">
+        <strong>{{ a["name:en"] }}</strong>
       </a>
     </div>
   {% endfor %}
