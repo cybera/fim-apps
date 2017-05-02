@@ -52,6 +52,9 @@ def get_allowed_apps():
         else:
             e["loginUrl"] = login_url.format(e["entityid"], "&RelayState="+app_url)
 
+        if e.get("logo:0:url") == "https://.png":
+            e["logo:0:url"] = flask.url_for("static", filename="images/placeholder.png")
+
         if e.get("allowedall") == "yes":
             allowed_apps.append(e)
         elif e.get("allowedEntities") is not None:
