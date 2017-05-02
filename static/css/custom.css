@@ -14,3 +14,15 @@
 .bg-danger {
   padding: 15px;
 }
+
+.app-image {
+  height: 200px;
+  text-align: center;
+}
+
+.container .img-responsive {
+  margin: auto;
+  display: block;
+  width: auto;
+  max-height: 100%;
+}
