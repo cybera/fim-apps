@@ -1,5 +1,8 @@
+#!/usr/bin/env python2
+
 import flask
 import requests
+import os
 
 app = flask.Flask(__name__)
 
@@ -14,8 +17,17 @@ def app_list():
     return flask.render_template("apps.html", apps=apps, error=error)
 
 def get_allowed_apps():
+    try:
+        APPS_JSON_PASS = flask.request.environ['APPS_JSON_PASS']
+        APPS_JSON_URL = flask.request.environ['APPS_JSON_URL']
+        APPS_EB_IDP_URL = flask.request.environ['APPS_EB_IDP_URL']
+    except KeyError as e:
+        # TODO: Do proper logging
+        print("Key error")
+        return []
+
     headers = { "Content-Type": "application/json" }
-    r = requests.get("https://multidata.dev.myunified.ca/service-providers.json", auth=("metadata.client", ""), headers=headers)
+    r = requests.get(APPS_JSON_URL, auth=("metadata.client", APPS_JSON_PASS), headers=headers)
 
     if r.status_code != 200:
         raise AppsException("Got non-200 status code")
@@ -29,7 +41,7 @@ def get_allowed_apps():
         if e["name:en"].startswith("myUnifiED"):
             continue
 
-        login_url = "https://engine.dev.myunified.ca/authentication/idp/unsolicited-single-sign-on?sp-entity-id={}{}"
+        login_url = APPS_EB_IDP_URL + "?sp-entity-id={}{}"
         app_url = e.get("coin:application_url")
         if app_url is None or app_url == "":
             e["loginUrl"] = login_url.format(e["entityid"], "")
