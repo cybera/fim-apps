@@ -25,7 +25,9 @@ def app_list():
         app.logger.exception("Could not retrieve app list")
         error = True
 
-    return flask.render_template("apps.html", apps=apps, error=error)
+    template = flask.request.args.get("template", "apps.html")
+
+    return flask.render_template(template, apps=apps, error=error)
 
 def get_allowed_apps():
     headers = { "Content-Type": "application/json" }
