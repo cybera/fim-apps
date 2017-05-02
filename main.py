@@ -13,9 +13,9 @@ def app_list():
 
 def get_allowed_apps():
     try:
-        APPS_JSON_PASS = os.environ['APPS_JSON_PASS']
-        APPS_JSON_URL = os.environ['APPS_JSON_URL']
-        APPS_EB_IDP_URL = os.environ['APPS_EB_IDP_URL']
+        APPS_JSON_PASS = flask.request.environ['APPS_JSON_PASS']
+        APPS_JSON_URL = flask.request.environ['APPS_JSON_URL']
+        APPS_EB_IDP_URL = flask.request.environ['APPS_EB_IDP_URL']
     except KeyError as e:
         # TODO: Do proper logging
         print("Key error")
