@@ -11,23 +11,11 @@ APPS_JSON_PASS = os.environ['APPS_JSON_PASS']
 APPS_JSON_URL = os.environ['APPS_JSON_URL']
 APPS_EB_IDP_URL = os.environ['APPS_EB_IDP_URL']
 
-handler = logging.StreamHandler()
-app.logger.addHandler(handler)
-
 @app.route("/")
 def app_list():
-    apps = []
-    error = False
-
-    try:
-        apps = get_allowed_apps()
-    except AppsException:
-        app.logger.exception("Could not retrieve app list")
-        error = True
-
     template = flask.request.args.get("template", "apps.html")
-
-    return flask.render_template(template, apps=apps, error=error)
+    apps = get_allowed_apps()
+    return flask.render_template(template, apps=apps)
 
 def get_allowed_apps():
     headers = { "Content-Type": "application/json" }
@@ -52,7 +40,7 @@ def get_allowed_apps():
         else:
             e["loginUrl"] = login_url.format(e["entityid"], "&RelayState="+app_url)
 
-        if e.get("logo:0:url") == "https://.png":
+        if e.get("logo:0:url", "https://.png") == "https://.png":
             e["logo:0:url"] = flask.url_for("static", filename="images/placeholder.png")
 
         if e.get("allowedall") == "yes":
@@ -65,6 +53,11 @@ def get_allowed_apps():
 
 class AppsException(Exception):
     pass
+
+@app.errorhandler(AppsException)
+def handle_error(e):
+    app.logger.error(e.message)
+    return flask.render_template("error.html", message="Could not retrieve apps, please try again later.")
 
 if __name__ == "__main__":
     app.run(debug=True)

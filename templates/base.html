@@ -36,16 +36,8 @@
     </nav>
 
     <div class="container">
-
-      {% if error %}
-        <div class="row">
-          <p class="bg-danger"><strong>Error:</strong> Could not retrieve apps, please try again later.</p>
-        </div>
-      {% endif %}
-
       {% block content %}
       {% endblock %}
-
     </div><!-- /.container -->
 
 
