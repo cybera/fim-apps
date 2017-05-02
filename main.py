@@ -2,35 +2,37 @@
 
 import flask
 import requests
+import logging
 import os
 
 app = flask.Flask(__name__)
 
+APPS_JSON_PASS = os.environ['APPS_JSON_PASS']
+APPS_JSON_URL = os.environ['APPS_JSON_URL']
+APPS_EB_IDP_URL = os.environ['APPS_EB_IDP_URL']
+
+handler = logging.StreamHandler()
+app.logger.addHandler(handler)
+
 @app.route("/")
 def app_list():
+    apps = []
     error = False
+
     try:
         apps = get_allowed_apps()
     except AppsException:
-        apps = []
+        app.logger.exception("Could not retrieve app list")
         error = True
+
     return flask.render_template("apps.html", apps=apps, error=error)
 
 def get_allowed_apps():
-    try:
-        APPS_JSON_PASS = os.environ['APPS_JSON_PASS']
-        APPS_JSON_URL = os.environ['APPS_JSON_URL']
-        APPS_EB_IDP_URL = os.environ['APPS_EB_IDP_URL']
-    except KeyError as e:
-        # TODO: Do proper logging
-        print("Key error")
-        return []
-
     headers = { "Content-Type": "application/json" }
     r = requests.get(APPS_JSON_URL, auth=("metadata.client", APPS_JSON_PASS), headers=headers)
 
     if r.status_code != 200:
-        raise AppsException("Got non-200 status code")
+        raise AppsException("Got status code {} for {}".format(r.status_code, APPS_JSON_URL))
 
     allowed_apps = []
     my_entity = flask.request.environ.get("Shib-Authenticating-Authority")
@@ -48,7 +50,7 @@ def get_allowed_apps():
         else:
             e["loginUrl"] = login_url.format(e["entityid"], "&RelayState="+app_url)
 
-        if e["allowedall"] == "yes":
+        if e.get("allowedall") == "yes":
             allowed_apps.append(e)
         elif e.get("allowedEntities") is not None:
             if my_entity in e["allowedEntities"]:
