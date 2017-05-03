@@ -2,7 +2,6 @@
 
 import flask
 import requests
-import logging
 import os
 
 app = flask.Flask(__name__)
