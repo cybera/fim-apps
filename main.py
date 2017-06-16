@@ -6,8 +6,10 @@ import os
 
 app = flask.Flask(__name__)
 
-APPS_JSON_PASS = os.environ['APPS_JSON_PASS']
-APPS_JSON_URL = os.environ['APPS_JSON_URL']
+APPS_MULTIDATA_PASS = os.environ['APPS_MULTIDATA_PASS']
+APPS_MULTIDATA_URL = os.environ['APPS_MULTIDATA_URL']
+APPS_PDP_PASS = os.environ['APPS_PDP_PASS']
+APPS_PDP_URL = os.environ['APPS_PDP_URL']
 APPS_EB_IDP_URL = os.environ['APPS_EB_IDP_URL']
 
 @app.route("/")
@@ -18,10 +20,10 @@ def app_list():
 
 def get_allowed_apps():
     headers = { "Content-Type": "application/json" }
-    r = requests.get(APPS_JSON_URL, auth=("metadata.client", APPS_JSON_PASS), headers=headers)
+    r = requests.get(APPS_MULTIDATA_URL, auth=("metadata.client", APPS_MULTIDATA_PASS), headers=headers)
 
     if r.status_code != 200:
-        raise AppsException("Got status code {} for {}".format(r.status_code, APPS_JSON_URL))
+        raise AppsException("Got status code {} for {}".format(r.status_code, APPS_MULTIDATA_URL))
 
     allowed_apps = []
     my_entity = flask.request.environ.get("Shib-Authenticating-Authority")
