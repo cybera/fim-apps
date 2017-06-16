@@ -17,7 +17,8 @@ APPS_EB_IDP_URL = os.environ['APPS_EB_IDP_URL']
 def app_list():
     template = flask.request.args.get("template", "apps.html")
     apps = get_allowed_apps()
-    return flask.render_template(template, apps=apps)
+    display_name = flask.request.environ.get("displayName", "")
+    return flask.render_template(template, display_name=display_name, apps=apps)
 
 def get_allowed_apps():
     metadata = get_metadata()

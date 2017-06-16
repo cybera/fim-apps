@@ -7,6 +7,10 @@
   color: #fff;
 }
 
+.navbar-inverse .navbar-text {
+  color: #fff;
+}
+
 .table tbody>tr>td.vert-align{
   vertical-align: middle;
 }
