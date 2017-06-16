@@ -19,16 +19,12 @@ def app_list():
     return flask.render_template(template, apps=apps)
 
 def get_allowed_apps():
-    headers = { "Content-Type": "application/json" }
-    r = requests.get(APPS_MULTIDATA_URL, auth=("metadata.client", APPS_MULTIDATA_PASS), headers=headers)
-
-    if r.status_code != 200:
-        raise AppsException("Got status code {} for {}".format(r.status_code, APPS_MULTIDATA_URL))
+    metadata = get_metadata()
 
     allowed_apps = []
     my_entity = flask.request.environ.get("Shib-Authenticating-Authority")
 
-    for e in r.json():
+    for e in metadata:
         if e.get("name:en") is None:
             continue
         if e["name:en"].startswith("myUnifiED"):
@@ -51,6 +47,51 @@ def get_allowed_apps():
                 allowed_apps.append(e)
 
     return allowed_apps
+
+def get_metadata():
+    headers = { "Content-Type": "application/json" }
+    r = requests.get(APPS_MULTIDATA_URL, auth=("metadata.client", APPS_MULTIDATA_PASS), headers=headers)
+
+    if r.status_code != 200:
+        raise AppsException("Got status code {} for {}".format(r.status_code, APPS_MULTIDATA_URL))
+
+    return r.json()
+
+def is_user_authorized(service_provider=None):
+    headers = { "Content-Type": "application/json" }
+    idp = flask.request.environ.get("Shib-Authenticating-Authority")
+    name_id = flask.request.environ.get("name-id")
+    idp = "https://cybera.idp.dev.myunified.ca/simplesaml/saml2/idp/metadata.php"
+    name_id = "urn:collab:person:ad.dev.myunified.ca:batman"
+    service_provider = "https://dokuwiki.dev.myunified.ca"
+
+    pdp_policy = {
+        "Request": {
+            "ReturnPolicyIdList": false,
+            "CombinedDecision": false,
+            "AccessSubject": {
+                "Attribute": [{
+                        "AttributeId": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                        "Value": name_id
+                }]
+            },
+            "Resource": {
+                "Attribute": [
+                    {
+                        "AttributeId": "SPentityID",
+                        "Value": service_provider
+                    },
+                    {
+                        "AttributeId": "IDPentityID",
+                        "Value": idp
+                    }
+                ]
+            }
+        }
+    }
+
+    r = requests.post(APPS_PDP_URL, auth=("pdp_admin", APPS_PDP_PASS), headers=headers, data=pdp_policy)
+
 
 class AppsException(Exception):
     pass
