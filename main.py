@@ -32,7 +32,7 @@ def get_allowed_apps():
             continue
         if e["name:en"].startswith("myUnifiED"):
             continue
-        if e.get("coin:policy_enforcement_decision_required", 0) == 1:
+        if e.get("coin:policy_enforcement_decision_required", "0") == "1":
             if not is_user_authorized(sp):
                 continue
 
