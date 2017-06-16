@@ -3,6 +3,7 @@
 import flask
 import requests
 import os
+import json
 
 app = flask.Flask(__name__)
 
@@ -22,20 +23,25 @@ def get_allowed_apps():
     metadata = get_metadata()
 
     allowed_apps = []
-    my_entity = flask.request.environ.get("Shib-Authenticating-Authority")
+    idp = flask.request.environ.get("Shib-Authenticating-Authority")
 
     for e in metadata:
+        sp = e["entityid"]
+
         if e.get("name:en") is None:
             continue
         if e["name:en"].startswith("myUnifiED"):
             continue
+        if e.get("coin:policy_enforcement_decision_required", False) is True:
+            if not is_user_authorized(sp):
+                continue
 
         login_url = APPS_EB_IDP_URL + "?sp-entity-id={}{}"
         app_url = e.get("coin:application_url")
         if app_url is None or app_url == "":
-            e["loginUrl"] = login_url.format(e["entityid"], "")
+            e["loginUrl"] = login_url.format(sp, "")
         else:
-            e["loginUrl"] = login_url.format(e["entityid"], "&RelayState="+app_url)
+            e["loginUrl"] = login_url.format(sp, "&RelayState="+app_url)
 
         if e.get("logo:0:url", "https://.png") == "https://.png":
             e["logo:0:url"] = flask.url_for("static", filename="images/placeholder.png")
@@ -43,7 +49,7 @@ def get_allowed_apps():
         if e.get("allowedall") == "yes":
             allowed_apps.append(e)
         elif e.get("allowedEntities") is not None:
-            if my_entity in e["allowedEntities"]:
+            if idp in e["allowedEntities"]:
                 allowed_apps.append(e)
 
     return allowed_apps
@@ -61,14 +67,11 @@ def is_user_authorized(service_provider=None):
     headers = { "Content-Type": "application/json" }
     idp = flask.request.environ.get("Shib-Authenticating-Authority")
     name_id = flask.request.environ.get("name-id")
-    idp = "https://cybera.idp.dev.myunified.ca/simplesaml/saml2/idp/metadata.php"
-    name_id = "urn:collab:person:ad.dev.myunified.ca:batman"
-    service_provider = "https://dokuwiki.dev.myunified.ca"
 
     pdp_policy = {
         "Request": {
-            "ReturnPolicyIdList": false,
-            "CombinedDecision": false,
+            "ReturnPolicyIdList": False,
+            "CombinedDecision": False,
             "AccessSubject": {
                 "Attribute": [{
                         "AttributeId": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
@@ -90,7 +93,13 @@ def is_user_authorized(service_provider=None):
         }
     }
 
-    r = requests.post(APPS_PDP_URL, auth=("pdp_admin", APPS_PDP_PASS), headers=headers, data=pdp_policy)
+    r = requests.post(APPS_PDP_URL, auth=("pdp_admin", APPS_PDP_PASS), headers=headers, data=json.dumps(pdp_policy))
+
+    if r.status_code != 200:
+        app.logger.error("Got status code {} for {}".format(r.status_code, APPS_PDP_URL))
+        return False
+
+    return r.json()['Response'][0]['Decision'] != "Deny"
 
 
 class AppsException(Exception):
