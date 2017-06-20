@@ -60,11 +60,11 @@ def get_metadata():
     r = requests.get(APPS_MULTIDATA_URL, auth=("metadata.client", APPS_MULTIDATA_PASS), headers=headers)
 
     if r.status_code != 200:
-        raise AppsException("Got status code {} for {}".format(r.status_code, APPS_MULTIDATA_URL))
+        raise AppsException("Unexpected status code {} for {}".format(r.status_code, APPS_MULTIDATA_URL))
 
     return r.json()
 
-def is_user_authorized(service_provider=None):
+def is_user_authorized(service_provider):
     headers = { "Content-Type": "application/json" }
     idp = flask.request.environ.get("Shib-Authenticating-Authority")
     name_id = flask.request.environ.get("name-id")
@@ -97,11 +97,15 @@ def is_user_authorized(service_provider=None):
     r = requests.post(APPS_PDP_URL, auth=("pdp_admin", APPS_PDP_PASS), headers=headers, data=json.dumps(pdp_policy))
 
     if r.status_code != 200:
-        app.logger.error("Got status code {} for {}".format(r.status_code, APPS_PDP_URL))
+        app.logger.error("Unexpected status code {} for {}".format(r.status_code, APPS_PDP_URL))
         return False
 
-    return r.json()['Response'][0]['Decision'] != "Deny"
+    try:
+        return r.json()['Response'][0]['Decision'] != "Deny"
+    except (KeyError, TypeError, IndexError):
+        app.logger.error("Unexpected response body for {}: {}".format(APPS_PDP_URL, r.json()))
 
+    return False
 
 class AppsException(Exception):
     pass
