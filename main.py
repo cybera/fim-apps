@@ -75,8 +75,8 @@ def is_user_authorized(service_provider):
             "CombinedDecision": False,
             "AccessSubject": {
                 "Attribute": [{
-                        "AttributeId": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-                        "Value": name_id
+                    "AttributeId": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+                    "Value": name_id
                 }]
             },
             "Resource": {
