@@ -87,9 +87,7 @@ def get_metadata():
 def is_user_authorized(service_provider):
     headers = { "Content-Type": "application/json" }
     idp = flask.request.environ.get("Shib-Authenticating-Authority")
-    idp = "https://superheroes.idp.dev.pikafederation.ca/simplesaml/saml2/idp/metadata.php"
     name_id = flask.request.environ.get("name-id")
-    name_id = "urn:collab:person:example.com:admin"
 
     pdp_policy = {
         "Request": {
