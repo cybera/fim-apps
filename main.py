@@ -7,11 +7,13 @@ import json
 
 app = flask.Flask(__name__)
 
-APPS_MULTIDATA_PASS = os.environ['APPS_MULTIDATA_PASS']
-APPS_MULTIDATA_URL = os.environ['APPS_MULTIDATA_URL']
+APPS_MANAGE_URL = os.environ['APPS_MANAGE_URL']
+APPS_MANAGE_USER = os.environ['APPS_MANAGE_USER']
+APPS_MANAGE_PASS = os.environ['APPS_MANAGE_PASS']
 APPS_PDP_PASS = os.environ['APPS_PDP_PASS']
 APPS_PDP_URL = os.environ['APPS_PDP_URL']
 APPS_EB_IDP_URL = os.environ['APPS_EB_IDP_URL']
+APPS_HIDE_PREFIX = os.environ['APPS_HIDE_PREFIX']
 
 @app.route("/")
 def app_list():
@@ -27,37 +29,55 @@ def get_allowed_apps():
     idp = flask.request.environ.get("Shib-Authenticating-Authority")
 
     for e in metadata:
-        sp = e["entityid"]
+        sp_data = {}
+        metadata_fields = e["data"].get("metaDataFields")
+        sp_entityid = e["data"].get("entityid")
+        sp_name = metadata_fields.get("name:en")
+        sp_app_url = metadata_fields.get("coin:application_url")
+        sp_logo_url = metadata_fields.get("logo:0:url", "https://.png")
+        sp_logo_width = metadata_fields.get("logo:0:width", "50")
+        sp_logo_height = metadata_fields.get("logo:0:height", "50")
+        sp_allowed_all = e["data"].get("allowedall")
+        sp_allowed_entities = e["data"].get("allowedEntities")
+        sp_login_url_template = APPS_EB_IDP_URL + "?sp-entity-id={}{}"
 
-        if e.get("name:en") is None:
+        if sp_entityid is None \
+           or metadata_fields is None \
+           or sp_name is None:
             continue
-        if e["name:en"].startswith("myUnifiED"):
+        if sp_name.startswith(APPS_HIDE_PREFIX):
             continue
-        if e.get("coin:policy_enforcement_decision_required", "0") == "1":
-            if not is_user_authorized(sp):
+        if metadata_fields.get("coin:policy_enforcement_decision_required", "0") == "1":
+            if not is_user_authorized(sp_entityid):
                 continue
 
-        login_url = APPS_EB_IDP_URL + "?sp-entity-id={}{}"
-        app_url = e.get("coin:application_url")
-        if app_url is None or app_url == "":
-            e["loginUrl"] = login_url.format(sp, "")
+        if sp_app_url is None or sp_app_url == "":
+            sp_login_url = sp_login_url_template.format(sp_entityid, "")
         else:
-            e["loginUrl"] = login_url.format(sp, "&RelayState="+app_url)
+            sp_login_url = sp_login_url_template.format(sp_entityid, "&RelayState="+sp_app_url)
 
-        if e.get("logo:0:url", "https://.png") == "https://.png":
-            e["logo:0:url"] = flask.url_for("static", filename="images/placeholder.png")
+        if sp_logo_url == "https://.png":
+            sp_logo_url = flask.url_for("static", filename="images/placeholder.png")
 
-        if e.get("allowedall") == "yes":
-            allowed_apps.append(e)
-        elif e.get("allowedEntities") is not None:
-            if idp in e["allowedEntities"]:
-                allowed_apps.append(e)
+        sp_data["name:en"] = sp_name
+        sp_data["loginUrl"] = sp_login_url
+        sp_data["logo:0:url"] = sp_logo_url
+        sp_data["logo:0:width"] = sp_logo_width
+        sp_data["logo:0:height"] = sp_logo_height
+
+        if sp_allowed_all:
+            allowed_apps.append(sp_data)
+        elif sp_allowed_entities is not None:
+            if idp in sp_allowed_entities:
+                allowed_apps.append(sp_data)
 
     return allowed_apps
 
 def get_metadata():
     headers = { "Content-Type": "application/json" }
-    r = requests.get(APPS_MULTIDATA_URL, auth=("metadata.client", APPS_MULTIDATA_PASS), headers=headers)
+    post_data = '{"ALL_ATTRIBUTES":true}'
+
+    r = requests.post(APPS_MANAGE_URL + '/manage/api/internal/search/saml20_sp', auth=(APPS_MANAGE_USER, APPS_MANAGE_PASS), headers=headers, data=post_data)
 
     if r.status_code != 200:
         raise AppsException("Unexpected status code {} for {}".format(r.status_code, APPS_MULTIDATA_URL))
@@ -67,7 +87,9 @@ def get_metadata():
 def is_user_authorized(service_provider):
     headers = { "Content-Type": "application/json" }
     idp = flask.request.environ.get("Shib-Authenticating-Authority")
+    idp = "https://superheroes.idp.dev.pikafederation.ca/simplesaml/saml2/idp/metadata.php"
     name_id = flask.request.environ.get("name-id")
+    name_id = "urn:collab:person:example.com:admin"
 
     pdp_policy = {
         "Request": {
