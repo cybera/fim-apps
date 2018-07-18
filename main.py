@@ -32,54 +32,69 @@ def get_allowed_apps():
     for e in metadata:
         sp_data = {}
         metadata_fields = e["data"].get("metaDataFields")
+
         sp_entityid = e["data"].get("entityid")
         sp_name = metadata_fields.get("name:en")
         sp_app_url = metadata_fields.get("coin:application_url")
-        sp_supports_idp_init = metadata_fields.get("coin:supports_idp_init_login", "False")
         sp_logo_url = metadata_fields.get("logo:0:url", "https://.png")
         sp_logo_width = metadata_fields.get("logo:0:width", "50")
         sp_logo_height = metadata_fields.get("logo:0:height", "50")
-        sp_allowed_all = e["data"].get("allowedall")
         sp_allowed_entities = e["data"].get("allowedEntities")
         sp_login_url_template = APPS_EB_IDP_URL + "?sp-entity-id={}{}"
+        sp_allowed_all = bool(e["data"].get("allowedall"))
+        sp_supports_idp_init = int(metadata_fields.get("coin:supports_idp_init_login", 0))
+        sp_policy_decision_required = int(metadata_fields.get("coin:policy_enforcement_decision_required", 0))
 
-        assert sp_supports_idp_init in ["True", "False"]
+        assert sp_entityid is not None
+        assert metadata_fields is not None
+        assert sp_supports_idp_init in [0,1]
+        assert sp_policy_decision_required in [0,1]
 
-        if sp_entityid is None \
-           or metadata_fields is None \
-           or sp_name is None:
+        # Hide app if no name or starts with prefix
+        if sp_name is None:
+            app.logger.error("SP {} has no name set".format(sp_entityid))
             continue
-        if sp_name.startswith(APPS_HIDE_PREFIX):
+        elif sp_name.startswith(APPS_HIDE_PREFIX):
+            app.logger.info("SP {} being skipped because it starts with {}".format(sp_entityid, APPS_HIDE_PREFIX))
             continue
-        if metadata_fields.get("coin:policy_enforcement_decision_required", "0") == "1":
+
+        # Don't show app if user not authorized to use it
+        if sp_policy_decision_required:
             if not is_user_authorized(sp_entityid):
+                app.logger.info("Skipping SP {} due to no access".format(sp_entityid))
                 continue
 
-        # IDP initiated login not supported
-        if sp_supports_idp_init == "False":
+        if sp_supports_idp_init:
+            app.logger.info("SP {} supports IDP initiated login".format(sp_entityid))
+            # IDP initiated login supported
+
+            if sp_app_url:
+                u_template = sp_login_url_template.format(sp_entityid, "&RelayState="+sp_app_url)
+            else:
+                u_template = sp_login_url_template.format(sp_entityid, "")
+
+            sp_login_url = urlparse(u_template)
+
+        else:
+            app.logger.info("SP {} doesn't support IDP initiated login".format(sp_entityid))
+
             if sp_app_url:
                 try:
                   u = urlparse(sp_entityid)
                   sp_login_url = u.geturl()
                 except Exception as e:
-                    logger.exception(e)
+                    app.logger.exception(e)
                     continue
             else:
                 # Drop entity from showing up as there's no login URL
+                app.logger.error("Dropping SP {} due to no application URL".format(sp_entityid))
                 continue
-        else:
-            # IDP initiated login supported
-            if sp_app_url:
-                u = urlparse(sp_entityid)
-                sp_login_url = sp_login_url_template.format(sp_entityid, "&RelayState="+u.geturl())
-            else:
-                sp_login_url = sp_login_url_template.format(sp_entityid, "")
 
         if sp_logo_url == "https://.png":
             sp_logo_url = flask.url_for("static", filename="images/placeholder.png")
 
         sp_data["name:en"] = sp_name
-        sp_data["loginUrl"] = sp_login_url
+        sp_data["loginUrl"] = sp_login_url.geturl()
         sp_data["logo:0:url"] = sp_logo_url
         sp_data["logo:0:width"] = sp_logo_width
         sp_data["logo:0:height"] = sp_logo_height
@@ -89,6 +104,8 @@ def get_allowed_apps():
         elif sp_allowed_entities is not None:
             if idp in sp_allowed_entities:
                 allowed_apps.append(sp_data)
+            else:
+                app.logger.info("SP {} not in sp_allowed_entities: {}".format(sp_entityid, sp_allowed_entities))
 
     return allowed_apps
 
@@ -107,6 +124,10 @@ def is_user_authorized(service_provider):
     headers = { "Content-Type": "application/json" }
     idp = flask.request.environ.get("Shib-Authenticating-Authority")
     name_id = flask.request.environ.get("name-id")
+
+    assert idp is not None
+    assert name_id is not None
+    assert service_provider is not None
 
     pdp_policy = {
         "Request": {
