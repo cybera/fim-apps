@@ -4,6 +4,7 @@ import flask
 import requests
 import os
 import json
+from urlparse import urlparse
 
 app = flask.Flask(__name__)
 
@@ -42,6 +43,8 @@ def get_allowed_apps():
         sp_allowed_entities = e["data"].get("allowedEntities")
         sp_login_url_template = APPS_EB_IDP_URL + "?sp-entity-id={}{}"
 
+        assert sp_supports_idp_init in ["True", "False"]
+
         if sp_entityid is None \
            or metadata_fields is None \
            or sp_name is None:
@@ -52,13 +55,22 @@ def get_allowed_apps():
             if not is_user_authorized(sp_entityid):
                 continue
 
-        if sp_app_url is None or sp_app_url == "":
-            if sp_supports_idp_init == "False":
-                sp_login_url = sp_app_url
+        # IDP initiated login not supported
+        if sp_supports_idp_init == "False":
+            if sp_app_url:
+                try:
+                  u = urlparse(sp_entityid)
+                  sp_login_url = u.geturl()
+                except Exception as e:
+                    logger.exception(e)
+                    continue
+        else:
+            # IDP initiated login supported
+            if sp_app_url:
+                u = urlparse(sp_entityid)
+                sp_login_url = sp_login_url_template.format(sp_entityid, "&RelayState="+u.geturl())
             else:
                 sp_login_url = sp_login_url_template.format(sp_entityid, "")
-        else:
-            sp_login_url = sp_login_url_template.format(sp_entityid, "&RelayState="+sp_app_url)
 
         if sp_logo_url == "https://.png":
             sp_logo_url = flask.url_for("static", filename="images/placeholder.png")
