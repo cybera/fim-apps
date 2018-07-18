@@ -80,7 +80,7 @@ def get_allowed_apps():
 
             if sp_app_url:
                 try:
-                  u = urlparse(sp_entityid)
+                  u = urlparse(sp_app_url)
                   sp_login_url = u.geturl()
                 except Exception as e:
                     app.logger.exception(e)
