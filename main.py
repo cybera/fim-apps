@@ -34,6 +34,7 @@ def get_allowed_apps():
         sp_entityid = e["data"].get("entityid")
         sp_name = metadata_fields.get("name:en")
         sp_app_url = metadata_fields.get("coin:application_url")
+        sp_supports_idp_init = metadata_fields.get("coin:supports_idp_init_login", "False")
         sp_logo_url = metadata_fields.get("logo:0:url", "https://.png")
         sp_logo_width = metadata_fields.get("logo:0:width", "50")
         sp_logo_height = metadata_fields.get("logo:0:height", "50")
@@ -52,7 +53,10 @@ def get_allowed_apps():
                 continue
 
         if sp_app_url is None or sp_app_url == "":
-            sp_login_url = sp_login_url_template.format(sp_entityid, "")
+            if sp_supports_idp_init == "False":
+                sp_login_url = sp_app_url
+            else:
+                sp_login_url = sp_login_url_template.format(sp_entityid, "")
         else:
             sp_login_url = sp_login_url_template.format(sp_entityid, "&RelayState="+sp_app_url)
 
