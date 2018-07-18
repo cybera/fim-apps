@@ -64,6 +64,9 @@ def get_allowed_apps():
                 except Exception as e:
                     logger.exception(e)
                     continue
+            else:
+                # Drop entity from showing up as there's no login URL
+                continue
         else:
             # IDP initiated login supported
             if sp_app_url:
