@@ -39,7 +39,7 @@ def get_allowed_apps():
         sp_logo_url = metadata_fields.get("logo:0:url", "https://.png")
         sp_logo_width = metadata_fields.get("logo:0:width", "50")
         sp_logo_height = metadata_fields.get("logo:0:height", "50")
-        sp_allowed_entities = e["data"].get("allowedEntities")
+        sp_allowed_entities_dict = e["data"].get("allowedEntities")
         sp_login_url_template = APPS_EB_IDP_URL + "?sp-entity-id={}{}"
         sp_allowed_all = bool(e["data"].get("allowedall"))
         sp_supports_idp_init = int(metadata_fields.get("coin:supports_idp_init_login", 0))
@@ -100,11 +100,12 @@ def get_allowed_apps():
 
         if sp_allowed_all:
             allowed_apps.append(sp_data)
-        elif sp_allowed_entities is not None:
-            if idp in sp_allowed_entities:
+        elif sp_allowed_entities_dict is not None and len(sp_allowed_entities_dict) > 0:
+            sp_allowed_entities_names = [d['name'] for d in sp_allowed_entities_dict]
+            if idp in sp_allowed_entities_names:
                 allowed_apps.append(sp_data)
             else:
-                app.logger.info("SP {} not in sp_allowed_entities: {}".format(sp_entityid, sp_allowed_entities))
+                app.logger.info("SP {} not in sp_allowed_entities: {}".format(sp_entityid, sp_allowed_entities_names))
 
     return allowed_apps
 
